@@ -1,0 +1,15 @@
+.vscode/**
+.github/**
+node_modules/**
+src/**
+test/**
+out/**
+**/*.map
+**/*.ts
+tsconfig.json
+esbuild.mjs
+.gitignore
+.env
+.env.*
+*.vsix
+CONTRIBUTING.md

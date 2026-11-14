@@ -1,0 +1,762 @@
+{
+  "name": "hush-env",
+  "displayName": "Hush: .env Backup",
+  "description": "Encrypted, automatic backup of your .env files to your own Google Drive.",
+  "version": "1.0.0",
+  "publisher": "SiamAhnaf",
+  "license": "MIT",
+  "icon": "media/logo.png",
+  "homepage": "https://github.com/siamahnaf/hush#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/siamahnaf/hush.git"
+  },
+  "bugs": {
+    "url": "https://github.com/siamahnaf/hush/issues"
+  },
+  "galleryBanner": {
+    "color": "#0F1E1D",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "env",
+    "dotenv",
+    ".env",
+    "backup",
+    "sync",
+    "google drive",
+    "encryption",
+    "secrets"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In Restricted Mode Hush backs up files but skips the .gitignore check, which runs git."
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "hush",
+          "title": "Hush",
+          "icon": "media/hush.svg"
+        }
+      ]
+    },
+    "views": {
+      "hush": [
+        {
+          "id": "hush.workspace",
+          "name": "This Workspace"
+        },
+        {
+          "id": "hush.cloud",
+          "name": "Other Projects in Drive",
+          "when": "hush.state == unlocked"
+        },
+        {
+          "id": "hush.account",
+          "name": "Account"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "hush.workspace",
+        "contents": "Back up your .env files to your own Google Drive, encrypted with a passphrase only you know.\n[Set up Hush](command:hush.setup)\n[How encryption works](command:hush.learnMore)",
+        "when": "hush.state == disconnected"
+      },
+      {
+        "view": "hush.workspace",
+        "contents": "Google Drive is connected. Create a passphrase to start backing up.\n[Create passphrase](command:hush.setup)",
+        "when": "hush.state == noVault"
+      },
+      {
+        "view": "hush.workspace",
+        "contents": "Hush found your backups in Google Drive. Enter your passphrase to unlock them on this computer.\n[Unlock](command:hush.unlock)",
+        "when": "hush.state == locked"
+      },
+      {
+        "view": "hush.workspace",
+        "contents": "Open a folder to back up its .env files.\n[Open Folder](command:workbench.action.files.openFolder)",
+        "when": "hush.state == unlocked && workbenchState == empty"
+      },
+      {
+        "view": "hush.workspace",
+        "contents": "No .env files found in this workspace. New .env files are backed up when you save them.\n[Scan again](command:hush.refresh)",
+        "when": "hush.state == unlocked && workbenchState != empty && !hush.hasFiles"
+      },
+      {
+        "view": "hush.cloud",
+        "contents": "Projects you back up from other folders or computers show up here, ready to restore."
+      },
+      {
+        "view": "hush.account",
+        "contents": "Not connected to Google Drive.\n[Connect Google Drive](command:hush.setup)",
+        "when": "hush.state == disconnected"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "hush.envEditor",
+        "displayName": "Hush .env Editor",
+        "selector": [
+          {
+            "filenamePattern": ".env"
+          },
+          {
+            "filenamePattern": ".env.*"
+          },
+          {
+            "filenamePattern": "*.env"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "hush.setup",
+        "title": "Open Setup",
+        "category": "Hush"
+      },
+      {
+        "command": "hush.unlock",
+        "title": "Unlock Vault",
+        "category": "Hush",
+        "icon": "$(unlock)"
+      },
+      {
+        "command": "hush.refresh",
+        "title": "Refresh",
+        "category": "Hush",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "hush.learnMore",
+        "title": "How Encryption Works",
+        "category": "Hush"
+      },
+      {
+        "command": "hush.openEditor",
+        "title": "Open in Hush Editor",
+        "category": "Hush",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "hush.openSettings",
+        "title": "Settings",
+        "category": "Hush",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "hush.file.menu",
+        "title": "File Actions",
+        "category": "Hush",
+        "icon": "$(cloud)"
+      },
+      {
+        "command": "hush.file.menu.synced",
+        "title": "Hush: Backed Up",
+        "icon": {
+          "light": "media/cloud-ok-light.svg",
+          "dark": "media/cloud-ok-dark.svg"
+        }
+      },
+      {
+        "command": "hush.file.menu.pending",
+        "title": "Hush: Waiting to Upload",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "hush.file.menu.busy",
+        "title": "Hush: Syncing",
+        "icon": "$(sync~spin)"
+      },
+      {
+        "command": "hush.file.menu.remote",
+        "title": "Hush: Newer Version in Cloud",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hush.file.menu.conflict",
+        "title": "Hush: Conflict",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "hush.file.menu.error",
+        "title": "Hush: Backup Failed",
+        "icon": "$(error)"
+      },
+      {
+        "command": "hush.file.menu.none",
+        "title": "Hush: Not Backed Up",
+        "icon": "$(cloud)"
+      },
+      {
+        "command": "hush.file.menu.setup",
+        "title": "Hush: Set Up",
+        "icon": "$(cloud)"
+      },
+      {
+        "command": "hush.file.push",
+        "title": "Push to Google Drive",
+        "category": "Hush",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "hush.file.pull",
+        "title": "Pull from Google Drive",
+        "category": "Hush",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hush.file.restore",
+        "title": "Restore to This Device",
+        "category": "Hush",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hush.file.compare",
+        "title": "Compare with Cloud Copy",
+        "category": "Hush",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "hush.file.history",
+        "title": "Version History",
+        "category": "Hush",
+        "icon": "$(history)"
+      },
+      {
+        "command": "hush.file.track",
+        "title": "Back Up This File",
+        "category": "Hush",
+        "icon": "$(cloud)"
+      },
+      {
+        "command": "hush.file.untrack",
+        "title": "Stop Backing Up This File",
+        "category": "Hush",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "hush.project.pushAll",
+        "title": "Push All",
+        "category": "Hush",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "hush.project.pullAll",
+        "title": "Pull All",
+        "category": "Hush",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hush.cloud.restore",
+        "title": "Restore into Folder…",
+        "category": "Hush",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hush.conflict.keepLocal",
+        "title": "Keep This Device's Version",
+        "category": "Hush",
+        "icon": "$(check)"
+      },
+      {
+        "command": "hush.conflict.useCloud",
+        "title": "Use Cloud Version",
+        "category": "Hush",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hush.gitignore.add",
+        "title": "Add to .gitignore",
+        "category": "Hush"
+      },
+      {
+        "command": "hush.vault.lock",
+        "title": "Lock Vault",
+        "category": "Hush",
+        "icon": "$(lock)"
+      },
+      {
+        "command": "hush.vault.changePassphrase",
+        "title": "Change Passphrase",
+        "category": "Hush",
+        "icon": "$(key)"
+      },
+      {
+        "command": "hush.vault.rotateKey",
+        "title": "Rotate Vault Key…",
+        "category": "Hush"
+      },
+      {
+        "command": "hush.account.disconnect",
+        "title": "Disconnect Google Drive",
+        "category": "Hush",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "hush.account.resetVault",
+        "title": "Delete Vault…",
+        "category": "Hush",
+        "icon": "$(trash)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "hush.file.menu.synced",
+          "when": "false"
+        },
+        {
+          "command": "hush.file.menu.pending",
+          "when": "false"
+        },
+        {
+          "command": "hush.file.menu.busy",
+          "when": "false"
+        },
+        {
+          "command": "hush.file.menu.remote",
+          "when": "false"
+        },
+        {
+          "command": "hush.file.menu.conflict",
+          "when": "false"
+        },
+        {
+          "command": "hush.file.menu.error",
+          "when": "false"
+        },
+        {
+          "command": "hush.file.menu.none",
+          "when": "false"
+        },
+        {
+          "command": "hush.file.menu.setup",
+          "when": "false"
+        },
+        {
+          "command": "hush.cloud.restore",
+          "when": "false"
+        },
+        {
+          "command": "hush.file.restore",
+          "when": "false"
+        },
+        {
+          "command": "hush.gitignore.add",
+          "when": "false"
+        },
+        {
+          "command": "hush.unlock",
+          "when": "hush.state == locked"
+        },
+        {
+          "command": "hush.file.menu",
+          "when": "hush.isEnvFile"
+        },
+        {
+          "command": "hush.file.push",
+          "when": "hush.state == unlocked && hush.isEnvFile"
+        },
+        {
+          "command": "hush.file.pull",
+          "when": "hush.state == unlocked && hush.isEnvFile"
+        },
+        {
+          "command": "hush.file.compare",
+          "when": "hush.state == unlocked && hush.isEnvFile"
+        },
+        {
+          "command": "hush.file.history",
+          "when": "hush.state == unlocked && hush.isEnvFile"
+        },
+        {
+          "command": "hush.file.track",
+          "when": "hush.state == unlocked && hush.isEnvFile"
+        },
+        {
+          "command": "hush.file.untrack",
+          "when": "hush.state == unlocked && hush.isEnvFile"
+        },
+        {
+          "command": "hush.conflict.keepLocal",
+          "when": "hush.activeFileStatus == conflict"
+        },
+        {
+          "command": "hush.conflict.useCloud",
+          "when": "hush.activeFileStatus == conflict"
+        },
+        {
+          "command": "hush.project.pushAll",
+          "when": "hush.state == unlocked"
+        },
+        {
+          "command": "hush.project.pullAll",
+          "when": "hush.state == unlocked"
+        },
+        {
+          "command": "hush.vault.lock",
+          "when": "hush.state == unlocked"
+        },
+        {
+          "command": "hush.vault.changePassphrase",
+          "when": "hush.state == unlocked"
+        },
+        {
+          "command": "hush.vault.rotateKey",
+          "when": "hush.state == unlocked"
+        },
+        {
+          "command": "hush.account.disconnect",
+          "when": "hush.state != disconnected"
+        },
+        {
+          "command": "hush.account.resetVault",
+          "when": "hush.state != disconnected"
+        },
+        {
+          "command": "hush.openEditor",
+          "when": "hush.isEnvFile"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "hush.file.menu.synced",
+          "when": "hush.isEnvFile && hush.state == unlocked && hush.activeFileStatus == synced",
+          "group": "navigation@-10"
+        },
+        {
+          "command": "hush.file.menu.pending",
+          "when": "hush.isEnvFile && hush.state == unlocked && hush.activeFileStatus == pending",
+          "group": "navigation@-10"
+        },
+        {
+          "command": "hush.file.menu.busy",
+          "when": "hush.isEnvFile && hush.state == unlocked && hush.activeFileStatus =~ /^(uploading|downloading)$/",
+          "group": "navigation@-10"
+        },
+        {
+          "command": "hush.file.menu.remote",
+          "when": "hush.isEnvFile && hush.state == unlocked && hush.activeFileStatus =~ /^(remoteNewer|missingLocal)$/",
+          "group": "navigation@-10"
+        },
+        {
+          "command": "hush.file.menu.conflict",
+          "when": "hush.isEnvFile && hush.state == unlocked && hush.activeFileStatus == conflict && !isInDiffEditor",
+          "group": "navigation@-10"
+        },
+        {
+          "command": "hush.file.menu.error",
+          "when": "hush.isEnvFile && hush.state == unlocked && hush.activeFileStatus == error",
+          "group": "navigation@-10"
+        },
+        {
+          "command": "hush.file.menu.none",
+          "when": "hush.isEnvFile && hush.state == unlocked && hush.activeFileStatus =~ /^(untracked|none)$/",
+          "group": "navigation@-10"
+        },
+        {
+          "command": "hush.file.menu.setup",
+          "when": "hush.isEnvFile && hush.state != unlocked",
+          "group": "navigation@-10"
+        },
+        {
+          "command": "hush.conflict.keepLocal",
+          "when": "isInDiffEditor && hush.isEnvFile && hush.activeFileStatus == conflict",
+          "group": "navigation@-9"
+        },
+        {
+          "command": "hush.conflict.useCloud",
+          "when": "isInDiffEditor && hush.isEnvFile && hush.activeFileStatus == conflict",
+          "group": "navigation@-8"
+        },
+        {
+          "command": "hush.openEditor",
+          "when": "hush.isEnvFile && !isInDiffEditor",
+          "group": "navigation@-7"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "hush.file.push",
+          "when": "hush.state == unlocked && resourceFilename =~ /(^\\.env(\\..+)?$)|(\\.env$)/",
+          "group": "7_hush@1"
+        },
+        {
+          "command": "hush.file.pull",
+          "when": "hush.state == unlocked && resourceFilename =~ /(^\\.env(\\..+)?$)|(\\.env$)/",
+          "group": "7_hush@2"
+        },
+        {
+          "command": "hush.file.compare",
+          "when": "hush.state == unlocked && resourceFilename =~ /(^\\.env(\\..+)?$)|(\\.env$)/",
+          "group": "7_hush@3"
+        },
+        {
+          "command": "hush.file.history",
+          "when": "hush.state == unlocked && resourceFilename =~ /(^\\.env(\\..+)?$)|(\\.env$)/",
+          "group": "7_hush@4"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "hush.project.pushAll",
+          "when": "view == hush.workspace && hush.state == unlocked",
+          "group": "navigation@1"
+        },
+        {
+          "command": "hush.project.pullAll",
+          "when": "view == hush.workspace && hush.state == unlocked",
+          "group": "navigation@2"
+        },
+        {
+          "command": "hush.refresh",
+          "when": "view == hush.workspace && hush.state == unlocked",
+          "group": "navigation@3"
+        },
+        {
+          "command": "hush.refresh",
+          "when": "view == hush.cloud",
+          "group": "navigation@1"
+        },
+        {
+          "command": "hush.openSettings",
+          "when": "view == hush.account",
+          "group": "navigation@1"
+        },
+        {
+          "command": "hush.account.disconnect",
+          "when": "view == hush.account && hush.state != disconnected",
+          "group": "8_account@1"
+        },
+        {
+          "command": "hush.account.resetVault",
+          "when": "view == hush.account && hush.state != disconnected",
+          "group": "9_danger@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "hush.file.push",
+          "when": "view == hush.workspace && viewItem =~ /^file\\.(synced|pending|error)$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "hush.file.pull",
+          "when": "view == hush.workspace && viewItem =~ /^file\\.(synced|remoteNewer)$/",
+          "group": "inline@2"
+        },
+        {
+          "command": "hush.file.restore",
+          "when": "view == hush.workspace && viewItem == file.missingLocal",
+          "group": "inline@1"
+        },
+        {
+          "command": "hush.file.compare",
+          "when": "view == hush.workspace && viewItem == file.conflict",
+          "group": "inline@1"
+        },
+        {
+          "command": "hush.file.track",
+          "when": "view == hush.workspace && viewItem == file.untracked",
+          "group": "inline@1"
+        },
+        {
+          "command": "hush.file.compare",
+          "when": "view == hush.workspace && viewItem =~ /^file\\.(synced|pending|remoteNewer|conflict)$/",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "hush.file.history",
+          "when": "view == hush.workspace && viewItem =~ /^file\\.(synced|pending|remoteNewer|conflict|missingLocal)$/",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "hush.conflict.keepLocal",
+          "when": "view == hush.workspace && viewItem == file.conflict",
+          "group": "1_actions@3"
+        },
+        {
+          "command": "hush.conflict.useCloud",
+          "when": "view == hush.workspace && viewItem == file.conflict",
+          "group": "1_actions@4"
+        },
+        {
+          "command": "hush.file.untrack",
+          "when": "view == hush.workspace && viewItem =~ /^file\\.(synced|pending|remoteNewer|error|conflict)$/",
+          "group": "2_tracking@1"
+        },
+        {
+          "command": "hush.file.track",
+          "when": "view == hush.workspace && viewItem == file.untracked",
+          "group": "2_tracking@1"
+        },
+        {
+          "command": "hush.gitignore.add",
+          "when": "view == hush.workspace && viewItem =~ /^file\\./",
+          "group": "3_git@1"
+        },
+        {
+          "command": "hush.project.pushAll",
+          "when": "view == hush.workspace && viewItem == project",
+          "group": "inline@1"
+        },
+        {
+          "command": "hush.cloud.restore",
+          "when": "view == hush.cloud && viewItem == cloudProject",
+          "group": "inline@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Hush",
+      "properties": {
+        "hush.autoPush": {
+          "type": "boolean",
+          "default": true,
+          "description": "Back up a .env file to Google Drive every time you save it."
+        },
+        "hush.autoPull": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "whenSafe",
+            "off"
+          ],
+          "enumDescriptions": [
+            "Show a notification when a newer version is in the cloud.",
+            "Pull automatically when the local file hasn't changed since the last sync. Otherwise ask.",
+            "Never pull or notify. Use the Hush sidebar instead."
+          ],
+          "default": "ask",
+          "description": "What Hush does when another computer uploads a newer version."
+        },
+        "hush.include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/.env",
+            "**/.env.*",
+            "**/*.env"
+          ],
+          "description": "Glob patterns for files Hush backs up."
+        },
+        "hush.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/node_modules/**",
+            "**/.git/**",
+            "**/dist/**",
+            "**/vendor/**",
+            "**/.env.example",
+            "**/.env.sample",
+            "**/.env.template"
+          ],
+          "description": "Glob patterns for files Hush never backs up."
+        },
+        "hush.codeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the backup status line above line 1 of each .env file."
+        },
+        "hush.explorerBadges": {
+          "type": "string",
+          "enum": [
+            "all",
+            "attention",
+            "off"
+          ],
+          "enumDescriptions": [
+            "Show a badge for every backed-up file.",
+            "Only show badges for conflicts and errors.",
+            "Never show badges."
+          ],
+          "default": "all",
+          "description": "Backup badges in the Explorer."
+        },
+        "hush.statusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Hush summary in the status bar."
+        }
+      }
+    },
+    "colors": [
+      {
+        "id": "hush.brandForeground",
+        "description": "Hush logo, links and the backed-up state.",
+        "defaults": {
+          "dark": "#14B8A6",
+          "light": "#0F766E",
+          "highContrast": "#2DD4BF",
+          "highContrastLight": "#0F766E"
+        }
+      },
+      {
+        "id": "hush.buttonBackground",
+        "description": "Background of the Hush primary button.",
+        "defaults": {
+          "dark": "#0D857B",
+          "light": "#0F766E",
+          "highContrast": "#2DD4BF",
+          "highContrastLight": "#0F766E"
+        }
+      },
+      {
+        "id": "hush.buttonForeground",
+        "description": "Text on the Hush primary button.",
+        "defaults": {
+          "dark": "#FFFFFF",
+          "light": "#FFFFFF",
+          "highContrast": "#000000",
+          "highContrastLight": "#FFFFFF"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.mjs --production",
+    "build:dev": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "package": "vsce package --no-dependencies",
+    "publish:vsce": "vsce publish --no-dependencies",
+    "publish:ovsx": "ovsx publish --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.0",
+    "ovsx": "^0.10.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}
