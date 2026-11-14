@@ -1,8 +1,12 @@
-# Hush: .env Backup
+<p align="center">
+  <img src="media/logo.png" alt="Hush logo" width="120">
+</p>
 
-Never lose a `.env` file again. Hush encrypts your `.env` files on your computer and backs them up to your own Google Drive. Only your passphrase can open them.
+<h1 align="center">Hush: .env Backup</h1>
 
-Free and open source. No Hush servers, no account to create.
+<p align="center">Never lose a <code>.env</code> file again. Hush encrypts your <code>.env</code> files on your computer and backs them up to your own Google Drive. Only your passphrase can open them.</p>
+
+<p align="center">Free and open source. No Hush servers, no account to create.</p>
 
 ## Features
 

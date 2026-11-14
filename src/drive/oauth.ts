@@ -71,7 +71,7 @@ export class GoogleAuth {
         const code = url.searchParams.get("code");
         const ok = !error && !!code && url.searchParams.get("state") === state;
         res.writeHead(ok ? 200 : 400, { "Content-Type": "text/html; charset=utf-8", Connection: "close" });
-        res.end(ok ? page("Hush is connected", "You can close this tab and return to VS Code.") : page("Connection failed", "Return to VS Code and try again."));
+        res.end(resultPage(ok, error === "access_denied"));
         if (ok && code) finish(undefined, code);
         else finish(new AuthError(error === "access_denied" ? "Google access was denied." : "Google sign-in failed. Try again."));
       });
@@ -177,9 +177,61 @@ function emailFromIdToken(idToken?: string): string | undefined {
   }
 }
 
-function page(title: string, message: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title}</title><style>
-body{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:#0f1e1d;color:#e2ebea}
-main{text-align:center;padding:24px}h1{font-size:22px;color:#2dd4bf;margin:0 0 8px}p{margin:0;color:#93a4a1}
-</style></head><body><main><h1>${title}</h1><p>${message}</p></main></body></html>`;
+//Browser Page
+const LOGO_PATH =
+  "M222 117H391L276 550C350 515 450 488 540 477L637 117H806L710 476C800 485 890 510 978 555C983 558 981 566 975 564C880 543 780 545 686 563L602 882H432L499 627C380 683 280 765 187 882H17Z";
+
+function resultPage(ok: boolean, denied: boolean): string {
+  const title = ok ? "You're connected" : denied ? "Access was not allowed" : "Couldn't connect";
+  const message = ok
+    ? "Hush can now keep a private, encrypted backup of your .env files in your Google Drive. You can close this tab and go back to VS Code."
+    : denied
+      ? "Hush needs permission to store its backups in your Google Drive. Go back to VS Code and choose Continue in browser to try again."
+      : "Something went wrong while connecting to Google. Go back to VS Code and try again.";
+  const badge = ok
+    ? '<path d="M7 12.5l3.2 3.2L17 9"/>'
+    : '<path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/>';
+  const points = ok
+    ? `<ul class="points">
+        <li><span class="dot"></span>Encrypted on your computer before upload</li>
+        <li><span class="dot"></span>Hidden from your Google Drive files</li>
+        <li><span class="dot"></span>Only your passphrase can open your backups</li>
+      </ul>`
+    : "";
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${title} · Hush</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#f6f9f8;color:#13211f;font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.card{width:100%;max-width:440px;background:#fff;border:1px solid #e3ebe9;border-radius:20px;padding:40px 36px 32px;text-align:center;box-shadow:0 1px 2px rgba(19,33,31,.04),0 12px 32px rgba(19,33,31,.08)}
+.mark{position:relative;width:72px;height:72px;margin:0 auto 24px;border-radius:20px;background:#e6f6f3;display:grid;place-items:center}
+.mark svg.logo{width:40px;height:40px}
+.badge{position:absolute;right:-8px;bottom:-8px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:3px solid #fff;background:${ok ? "#0f9488" : "#d14343"}}
+.badge svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+h1{margin:0 0 10px;font-size:24px;line-height:1.25;letter-spacing:-.01em}
+p{margin:0 auto;max-width:34ch;color:#566764}
+.points{list-style:none;margin:24px 0 0;padding:20px 0 0;border-top:1px solid #edf2f1;display:grid;gap:10px;text-align:left}
+.points li{display:flex;align-items:center;gap:10px;font-size:14px;color:#34413f}
+.dot{width:8px;height:8px;border-radius:50%;background:#14b8a6;flex:none}
+.foot{margin-top:28px;font-size:13px;color:#8a9a97}
+.foot b{color:#0f766e;font-weight:600}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="mark">
+    <svg class="logo" viewBox="0 0 1000 1000" aria-hidden="true"><path fill="#14B8A6" d="${LOGO_PATH}"/></svg>
+    <span class="badge"><svg viewBox="0 0 24 24" aria-hidden="true">${badge}</svg></span>
+  </div>
+  <h1>${title}</h1>
+  <p>${message}</p>
+  ${points}
+  <div class="foot"><b>Hush</b> · .env backup for VS Code</div>
+</main>
+</body>
+</html>`;
 }
