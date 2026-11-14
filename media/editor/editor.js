@@ -347,17 +347,17 @@
         if (/^\s*#/.test(raw)) return `<span class="t-c">${esc(raw)}</span>`;
         return esc(raw);
       })
-      .join("\n");
+      .map((line, index) => `<div class="l"><span class="n">${index + 1}</span><span class="t">${line}</span></div>`)
+      .join("");
   }
 
   function renderRaw() {
     $("main").className = "raw-main";
     $("main").innerHTML = `
       <div class="raw">
-        <div class="gutter" id="gutter" aria-hidden="true"></div>
         <div class="code">
-          <pre class="hl" id="hl" aria-hidden="true"></pre>
-          <textarea id="src" wrap="off" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="File contents"></textarea>
+          <div class="hl" id="hl" aria-hidden="true"></div>
+          <textarea id="src" wrap="soft" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="File contents"></textarea>
         </div>
       </div>`;
     const area = $("src");
@@ -379,9 +379,7 @@
   }
 
   function paintRaw() {
-    const lines = text.split("\n").length;
-    $("hl").innerHTML = `${highlight(text)}\n`;
-    $("gutter").innerHTML = Array.from({ length: lines }, (_, i) => `<span>${i + 1}</span>`).join("");
+    $("hl").innerHTML = highlight(text);
     syncScroll();
   }
 
@@ -389,8 +387,6 @@
     const area = $("src");
     if (!area) return;
     $("hl").scrollTop = area.scrollTop;
-    $("hl").scrollLeft = area.scrollLeft;
-    $("gutter").scrollTop = area.scrollTop;
   }
 
   function renderMain() {

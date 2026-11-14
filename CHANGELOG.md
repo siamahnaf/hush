@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- Smaller font in the Raw view.
+- Long lines now wrap in the Raw view.
+
 ## 1.0.0
 - Change color and fixed font size issues
 

@@ -616,33 +616,24 @@ main {
 
 .raw {
   --pad: 12px;
-  --lh: 1.6;
+  --gutter: 44px;
+  --text-x: 14px;
   display: flex;
   flex: 1;
   min-height: 0;
   border: 1px solid var(--line);
   border-radius: 10px;
   overflow: hidden;
-  background: var(--bg);
   font-family: var(--mono);
-  font-size: var(--mono-size);
-  line-height: var(--lh);
-}
-
-.gutter {
-  flex: none;
-  min-width: 48px;
-  padding: var(--pad) 10px var(--pad) 12px;
-  overflow: hidden;
-  text-align: right;
-  color: var(--vscode-editorLineNumber-foreground, var(--muted));
-  background: var(--surface);
-  border-right: 1px solid var(--line);
-  user-select: none;
-}
-
-.gutter span {
-  display: block;
+  font-size: 12px;
+  line-height: 1.7;
+  background: linear-gradient(
+    to right,
+    var(--surface) var(--gutter),
+    var(--line) var(--gutter),
+    var(--line) calc(var(--gutter) + 1px),
+    var(--bg) calc(var(--gutter) + 1px)
+  );
 }
 
 .code {
@@ -651,27 +642,54 @@ main {
   min-width: 0;
 }
 
+/* Both layers wrap at the same width so text and caret line up */
 .hl,
 .code textarea {
   position: absolute;
   inset: 0;
   margin: 0;
-  padding: var(--pad) 16px;
+  border: 0;
   font: inherit;
   line-height: inherit;
-  white-space: pre;
   tab-size: 2;
-  border: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.hl::-webkit-scrollbar,
+.code textarea::-webkit-scrollbar {
+  display: none;
 }
 
 .hl {
-  overflow: hidden;
+  padding: var(--pad) var(--text-x) var(--pad) 0;
   pointer-events: none;
   color: var(--fg);
 }
 
+.hl .l {
+  display: grid;
+  grid-template-columns: var(--gutter) minmax(0, 1fr);
+}
+
+.hl .n {
+  padding-right: 12px;
+  text-align: right;
+  color: var(--vscode-editorLineNumber-foreground, var(--muted));
+  user-select: none;
+}
+
+.hl .t {
+  padding-left: calc(var(--text-x) + 1px);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .code textarea {
+  padding: var(--pad) var(--text-x) var(--pad) calc(var(--gutter) + var(--text-x) + 1px);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   resize: none;
   outline: none;
   background: transparent;

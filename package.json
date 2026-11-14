@@ -2,7 +2,7 @@
   "name": "hush-env",
   "displayName": "Hush: .env Backup",
   "description": "Encrypted, automatic backup of your .env files to your own Google Drive.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "SiamAhnaf",
   "license": "MIT",
   "icon": "media/logo.png",
