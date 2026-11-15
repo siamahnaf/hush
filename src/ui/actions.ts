@@ -37,6 +37,7 @@ export async function showFileMenu(engine: SyncEngine, session: Session, uri?: v
   items.push({ label: "this file", kind: vscode.QuickPickItemKind.Separator });
   if (file.tracked) add("eye-closed", "Stop backing up this file", "hush.file.untrack");
   else add("cloud", "Back up this file", "hush.file.track");
+  if (file.remote) add("trash", "Delete backup", "hush.file.deleteBackup", "Remove it from Google Drive");
   add("gear", "Hush settings", "hush.openSettings");
 
   const pick = await vscode.window.showQuickPick(items, { title: `${basename(file.uri)} · ${statusLabel(file)}`, placeHolder: "Choose an action" });

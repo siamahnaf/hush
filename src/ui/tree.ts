@@ -158,7 +158,7 @@ export function registerTrees(engine: SyncEngine, session: Session): vscode.Disp
   const workspace = new WorkspaceTree(engine, session);
   const cloud = new CloudTree(engine, session);
   const account = new AccountTree(session);
-  const workspaceView = vscode.window.createTreeView("hush.workspace", { treeDataProvider: workspace });
+  const workspaceView = vscode.window.createTreeView("hush.workspace", { treeDataProvider: workspace, canSelectMany: true });
   const cloudView = vscode.window.createTreeView("hush.cloud", { treeDataProvider: cloud });
   const accountView = vscode.window.createTreeView("hush.account", { treeDataProvider: account });
 

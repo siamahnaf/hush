@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2
+
+- Delete backups you no longer need, one at a time or several at once.
+- Icons for the Hush sidebar views.
+
 ## 1.0.1
 
 - Smaller font in the Raw view.

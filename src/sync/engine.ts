@@ -557,6 +557,36 @@ export class SyncEngine implements vscode.Disposable {
     this.fire();
   }
 
+  //Delete Backups
+  async deleteBackups(uris: vscode.Uri[]): Promise<number> {
+    this.requireKeys();
+    let deleted = 0;
+    const keepLocal: [vscode.Uri, boolean][] = [];
+    const records = { ...this.records() };
+    for (const uri of uris) {
+      const file = this.fileFor(uri);
+      if (!file) continue;
+      const project = this.projectOf(file);
+      const folderId = project?.folderId ?? (await this.store.findProjectFolder(file.projectId));
+      const remote = folderId ? await this.store.findFile(folderId, file.fileId) : undefined;
+      if (remote) {
+        await this.store.deleteFile(remote.driveId);
+        deleted++;
+      }
+      delete records[file.key];
+      this.errors.delete(file.key);
+      this.retries.delete(file.key);
+      this.notifiedConflicts.delete(file.key);
+      clearTimeout(this.timers.get(file.key));
+      this.timers.delete(file.key);
+      if (file.exists) keepLocal.push([file.uri, false]);
+    }
+    await this.ctx.workspaceState.update(STATE_RECORDS, records);
+    if (keepLocal.length) await this.setTracked(keepLocal);
+    else await this.refresh();
+    return deleted;
+  }
+
   async setTracked(entries: [vscode.Uri, boolean][]): Promise<void> {
     const untracked = new Set(this.ctx.workspaceState.get<string[]>(STATE_UNTRACKED, []));
     for (const [uri, tracked] of entries) {

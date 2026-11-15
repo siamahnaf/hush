@@ -114,6 +114,10 @@ export class HushStore {
     await this.drive.updateFile(driveId, blob);
   }
 
+  deleteFile(driveId: string): Promise<void> {
+    return this.drive.delete(driveId);
+  }
+
   //Revisions
   async revisions(driveId: string): Promise<DriveRevision[]> {
     const revisions = await this.drive.revisions(driveId);

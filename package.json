@@ -2,7 +2,7 @@
   "name": "hush-env",
   "displayName": "Hush: .env Backup",
   "description": "Encrypted, automatic backup of your .env files to your own Google Drive.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "SiamAhnaf",
   "license": "MIT",
   "icon": "media/logo.png",
@@ -62,16 +62,19 @@
       "hush": [
         {
           "id": "hush.workspace",
-          "name": "This Workspace"
+          "name": "This Workspace",
+          "icon": "media/hush.svg"
         },
         {
           "id": "hush.cloud",
           "name": "Other Projects in Drive",
+          "icon": "media/view-cloud.svg",
           "when": "hush.state == unlocked"
         },
         {
           "id": "hush.account",
-          "name": "Account"
+          "name": "Account",
+          "icon": "media/view-account.svg"
         }
       ]
     },
@@ -256,6 +259,12 @@
         "icon": "$(eye-closed)"
       },
       {
+        "command": "hush.file.deleteBackup",
+        "title": "Delete Backup…",
+        "category": "Hush",
+        "icon": "$(trash)"
+      },
+      {
         "command": "hush.project.pushAll",
         "title": "Push All",
         "category": "Hush",
@@ -437,6 +446,10 @@
         {
           "command": "hush.openEditor",
           "when": "hush.isEnvFile"
+        },
+        {
+          "command": "hush.file.deleteBackup",
+          "when": "hush.state == unlocked && hush.isEnvFile"
         }
       ],
       "editor/title": [
@@ -625,6 +638,16 @@
           "command": "hush.cloud.restore",
           "when": "view == hush.cloud && viewItem == cloudProject",
           "group": "inline@1"
+        },
+        {
+          "command": "hush.file.deleteBackup",
+          "when": "view == hush.workspace && viewItem == file.missingLocal",
+          "group": "inline@2"
+        },
+        {
+          "command": "hush.file.deleteBackup",
+          "when": "view == hush.workspace && viewItem =~ /^file\\.(synced|remoteNewer|conflict|missingLocal|error|untracked)$/",
+          "group": "9_danger@1"
         }
       ]
     },

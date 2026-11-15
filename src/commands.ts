@@ -13,11 +13,11 @@ const MENU_VARIANTS = ["synced", "pending", "busy", "remote", "conflict", "error
 const RESET_PHRASE = "delete my backups";
 
 export function registerCommands(ctx: vscode.ExtensionContext, session: Session, engine: SyncEngine, log: vscode.LogOutputChannel): void {
-  const register = (id: string, run: (arg?: unknown) => unknown) => {
+  const register = (id: string, run: (arg?: unknown, selected?: unknown) => unknown) => {
     ctx.subscriptions.push(
-      vscode.commands.registerCommand(id, async (arg?: unknown) => {
+      vscode.commands.registerCommand(id, async (arg?: unknown, selected?: unknown) => {
         try {
-          await run(arg);
+          await run(arg, selected);
         } catch (error) {
           if (error instanceof vscode.CancellationError) return;
           log.error(`${id}: ${errorMessage(error)}`);
@@ -72,6 +72,29 @@ export function registerCommands(ctx: vscode.ExtensionContext, session: Session,
   register("hush.file.track", (arg) => engine.setTracked([[requireFile(engine, arg).uri, true]]));
   register("hush.file.untrack", (arg) => engine.setTracked([[requireFile(engine, arg).uri, false]]));
   register("hush.gitignore.add", (arg) => engine.fixGitignore(requireFile(engine, arg).uri));
+
+  register("hush.file.deleteBackup", async (arg, selected) => {
+    const picked = Array.isArray(selected) && selected.length ? selected : [arg];
+    const files = picked.map((item) => engine.fileFor(targetUri(item))).filter((file): file is EnvFile => !!file);
+    if (!files.length) throw new Error("Hush isn't backing up this file.");
+    const single = files.length === 1;
+    const onDisk = files.filter((file) => file.exists).length;
+    const detail = [
+      single ? undefined : files.map((file) => file.relPath).join("\n"),
+      `${single ? "The backup is" : "The backups are"} permanently removed from Google Drive, including version history.`,
+      onDisk ? `Files on this computer aren't touched, and Hush stops backing ${single ? "it" : "them"} up.` : undefined,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+    const confirm = await vscode.window.showWarningMessage(
+      single ? `Delete the backup of ${files[0].relPath}?` : `Delete ${files.length} backups?`,
+      { modal: true, detail },
+      single ? "Delete backup" : "Delete backups",
+    );
+    if (!confirm) return;
+    const deleted = await progress("Deleting backups", () => engine.deleteBackups(files.map((file) => file.uri)));
+    vscode.window.setStatusBarMessage(`$(trash) Deleted ${plural(deleted, "backup")}`, 4000);
+  });
 
   //Conflicts
   register("hush.conflict.keepLocal", async (arg) => {
