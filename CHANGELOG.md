@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.3
+
+- Link a renamed or moved folder to its old backups, then pull everything from This Workspace.
+- Delete a whole project's backups from Other Projects in Drive.
+- Unlink a folder from linked backups.
+
 ## 1.0.2
 
 - Delete backups you no longer need, one at a time or several at once.

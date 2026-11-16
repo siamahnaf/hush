@@ -2,7 +2,7 @@
   "name": "hush-env",
   "displayName": "Hush: .env Backup",
   "description": "Encrypted, automatic backup of your .env files to your own Google Drive.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publisher": "SiamAhnaf",
   "license": "MIT",
   "icon": "media/logo.png",
@@ -283,6 +283,24 @@
         "icon": "$(cloud-download)"
       },
       {
+        "command": "hush.cloud.link",
+        "title": "Link to This Folder…",
+        "category": "Hush",
+        "icon": "$(link)"
+      },
+      {
+        "command": "hush.cloud.delete",
+        "title": "Delete Project from Drive…",
+        "category": "Hush",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "hush.project.unlink",
+        "title": "Unlink from Backups…",
+        "category": "Hush",
+        "icon": "$(debug-disconnect)"
+      },
+      {
         "command": "hush.conflict.keepLocal",
         "title": "Keep This Device's Version",
         "category": "Hush",
@@ -450,6 +468,18 @@
         {
           "command": "hush.file.deleteBackup",
           "when": "hush.state == unlocked && hush.isEnvFile"
+        },
+        {
+          "command": "hush.cloud.link",
+          "when": "false"
+        },
+        {
+          "command": "hush.cloud.delete",
+          "when": "false"
+        },
+        {
+          "command": "hush.project.unlink",
+          "when": "false"
         }
       ],
       "editor/title": [
@@ -631,7 +661,7 @@
         },
         {
           "command": "hush.project.pushAll",
-          "when": "view == hush.workspace && viewItem == project",
+          "when": "view == hush.workspace && viewItem =~ /^project/",
           "group": "inline@1"
         },
         {
@@ -648,6 +678,36 @@
           "command": "hush.file.deleteBackup",
           "when": "view == hush.workspace && viewItem =~ /^file\\.(synced|remoteNewer|conflict|missingLocal|error|untracked)$/",
           "group": "9_danger@1"
+        },
+        {
+          "command": "hush.cloud.link",
+          "when": "view == hush.cloud && viewItem == cloudProject",
+          "group": "inline@2"
+        },
+        {
+          "command": "hush.cloud.link",
+          "when": "view == hush.cloud && viewItem == cloudProject",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "hush.cloud.restore",
+          "when": "view == hush.cloud && viewItem == cloudProject",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "hush.cloud.delete",
+          "when": "view == hush.cloud && viewItem == cloudProject",
+          "group": "9_danger@1"
+        },
+        {
+          "command": "hush.project.pullAll",
+          "when": "view == hush.workspace && viewItem =~ /^project/",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "hush.project.unlink",
+          "when": "view == hush.workspace && viewItem == project.linked",
+          "group": "9_link@1"
         }
       ]
     },

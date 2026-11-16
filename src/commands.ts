@@ -147,6 +147,73 @@ export function registerCommands(ctx: vscode.ExtensionContext, session: Session,
     if (choice === "Open folder") await vscode.commands.executeCommand("vscode.openFolder", target, { forceNewWindow: true });
   });
 
+  register("hush.cloud.link", async (arg) => {
+    const cloud = (arg as { cloud?: CloudProject } | undefined)?.cloud;
+    if (!cloud) return;
+    const folders = vscode.workspace.workspaceFolders ?? [];
+    if (!folders.length) throw new Error("Open the renamed project folder first, then link it.");
+    const folder =
+      folders.length === 1
+        ? folders[0]
+        : (
+            await vscode.window.showQuickPick(
+              folders.map((item) => ({ label: `$(root-folder) ${item.name}`, folder: item })),
+              { title: `Link ${cloud.name}`, placeHolder: "Which folder should use these backups?" },
+            )
+          )?.folder;
+    if (!folder) return;
+    const current = engine.projects.find((project) => project.folder.uri.toString() === folder.uri.toString());
+    const ownBackups = current?.files.filter((file) => file.remote).length ?? 0;
+    const confirm = await vscode.window.showInformationMessage(
+      `Link ${folder.name} to the ${cloud.name} backups?`,
+      {
+        modal: true,
+        detail: [
+          `${folder.name} will use the ${plural(cloud.fileCount, "backup")} from ${cloud.name}. Files with the same paths are matched, and the rest show as "Not on this device" so you can pull them.`,
+          ownBackups ? `The ${plural(ownBackups, "backup")} ${folder.name} has now stay in Drive under Other Projects, where you can delete them.` : "",
+          "Nothing on this computer is changed until you pull.",
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+      },
+      "Link folder",
+    );
+    if (!confirm) return;
+    const missing = await progress(`Linking ${folder.name}`, () => engine.linkFolder(folder, cloud));
+    const message = missing
+      ? `Linked ${folder.name} to ${cloud.name}. ${plural(missing, "file")} ready to pull.`
+      : `Linked ${folder.name} to ${cloud.name}. Everything is up to date.`;
+    const choice = await vscode.window.showInformationMessage(message, ...(missing ? ["Pull all"] : []));
+    if (choice === "Pull all") await vscode.commands.executeCommand("hush.project.pullAll", { project: { folder } });
+  });
+
+  register("hush.project.unlink", async (arg) => {
+    const folder = folderFromArg(arg);
+    if (!folder) return;
+    const confirm = await vscode.window.showWarningMessage(
+      `Unlink ${folder.name}?`,
+      { modal: true, detail: `${folder.name} goes back to being matched by its git remote or folder name. The linked backups stay in Drive under Other Projects.` },
+      "Unlink",
+    );
+    if (confirm) await engine.unlinkFolder(folder);
+  });
+
+  register("hush.cloud.delete", async (arg) => {
+    const cloud = (arg as { cloud?: CloudProject } | undefined)?.cloud;
+    if (!cloud) return;
+    const confirm = await vscode.window.showWarningMessage(
+      `Delete all backups of ${cloud.name}?`,
+      {
+        modal: true,
+        detail: `${plural(cloud.fileCount, "backup")} ${cloud.fileCount === 1 ? "is" : "are"} permanently removed from Google Drive, including version history. Files on your computers aren't touched.`,
+      },
+      "Delete project",
+    );
+    if (!confirm) return;
+    await progress(`Deleting ${cloud.name}`, () => engine.deleteCloudProject(cloud));
+    vscode.window.setStatusBarMessage(`$(trash) Deleted ${cloud.name} from Google Drive`, 4000);
+  });
+
   //Vault
   register("hush.vault.lock", async () => {
     await session.lock();

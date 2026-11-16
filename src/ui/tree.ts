@@ -47,9 +47,13 @@ class WorkspaceTree implements vscode.TreeDataProvider<WorkspaceNode> {
       const item = new vscode.TreeItem(project.name, vscode.TreeItemCollapsibleState.Expanded);
       item.id = `project:${project.folder.uri.toString()}`;
       item.description = `${synced} of ${project.files.length} backed up`;
-      item.iconPath = new vscode.ThemeIcon("root-folder");
-      item.contextValue = "project";
-      item.tooltip = project.identity.startsWith("folder:") ? "Matched by folder name" : `Matched by git remote ${project.identity}`;
+      item.iconPath = new vscode.ThemeIcon(project.linked ? "link" : "root-folder");
+      item.contextValue = project.linked ? "project.linked" : "project";
+      item.tooltip = project.linked
+        ? "Linked to backups from another folder"
+        : project.identity.startsWith("folder:")
+          ? "Matched by folder name"
+          : `Matched by git remote ${project.identity}`;
       return item;
     }
     const { file } = node;

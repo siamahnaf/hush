@@ -47,6 +47,7 @@ export interface Project {
   name: string;
   folderId?: string;
   infoChecked?: boolean;
+  linked: boolean;
   files: EnvFile[];
 }
 
@@ -86,6 +87,7 @@ type Progress = (done: number, total: number) => void;
 const PUSH_DELAY = 1500;
 const REFRESH_DELAY = 800;
 const RETRY_DELAYS = [5, 15, 60, 300];
+const LINK_ID = "id:";
 
 export class SyncEngine implements vscode.Disposable {
   projects: Project[] = [];
@@ -178,9 +180,11 @@ export class SyncEngine implements vscode.Disposable {
     const projects: Project[] = [];
 
     for (const folder of vscode.workspace.workspaceFolders ?? []) {
-      const identity = links[folder.uri.toString()] ?? (await detectIdentity(folder));
-      const projectId = deriveId(keys.idKey, "project", identity);
-      const project: Project = { folder, identity, projectId, name: folder.name, files: [] };
+      const link = links[folder.uri.toString()];
+      const linkedId = link?.startsWith(LINK_ID) ? link.slice(LINK_ID.length) : undefined;
+      const identity = link && !linkedId ? link : await detectIdentity(folder);
+      const projectId = linkedId ?? deriveId(keys.idKey, "project", identity);
+      const project: Project = { folder, identity, projectId, name: folder.name, linked: !!link, files: [] };
       for (const uri of await discover(folder, config.include, config.exclude)) {
         const key = uri.toString();
         const previous = this.byUri.get(key);
@@ -483,12 +487,37 @@ export class SyncEngine implements vscode.Disposable {
     for (const write of chosen) await writeLocal(write.uri, write.content);
 
     const folder = vscode.workspace.getWorkspaceFolder(target);
-    if (folder && folder.uri.toString() === target.toString() && cloud.identity) {
-      const links = this.ctx.workspaceState.get<Record<string, string>>(STATE_LINKS, {});
-      await this.ctx.workspaceState.update(STATE_LINKS, { ...links, [folder.uri.toString()]: cloud.identity });
-    }
+    if (folder && folder.uri.toString() === target.toString()) await this.saveLink(folder, cloud);
     await this.refresh();
     return chosen.length;
+  }
+
+  //Linking
+  async linkFolder(folder: vscode.WorkspaceFolder, cloud: CloudProject): Promise<number> {
+    await this.saveLink(folder, cloud);
+    await this.refresh();
+    return this.files.filter((file) => file.status === "missingLocal" && inFolder(file, folder)).length;
+  }
+
+  async unlinkFolder(folder: vscode.WorkspaceFolder): Promise<void> {
+    const links = { ...this.ctx.workspaceState.get<Record<string, string>>(STATE_LINKS, {}) };
+    delete links[folder.uri.toString()];
+    await this.ctx.workspaceState.update(STATE_LINKS, links);
+    await this.refresh();
+  }
+
+  private async saveLink(folder: vscode.WorkspaceFolder, cloud: CloudProject): Promise<void> {
+    const links = this.ctx.workspaceState.get<Record<string, string>>(STATE_LINKS, {});
+    const value = cloud.identity || `${LINK_ID}${cloud.projectId}`;
+    await this.ctx.workspaceState.update(STATE_LINKS, { ...links, [folder.uri.toString()]: value });
+  }
+
+  async deleteCloudProject(cloud: CloudProject): Promise<void> {
+    this.requireKeys();
+    await this.store.deleteFile(cloud.folderId);
+    this.store.reset();
+    this.infoCache.delete(cloud.folderId);
+    await this.refresh();
   }
 
   //History
