@@ -662,9 +662,12 @@ main {
   display: none;
 }
 
+/* Highlight layer sits above the textarea so selection paints behind the text */
 .hl {
+  z-index: 1;
   padding: var(--pad) var(--text-x) var(--pad) 0;
   pointer-events: none;
+  background: transparent;
   color: var(--fg);
 }
 
@@ -698,6 +701,7 @@ main {
 }
 
 .code textarea::selection {
+  color: transparent;
   background: var(--vscode-editor-selectionBackground, rgba(38, 79, 120, 0.6));
 }
 

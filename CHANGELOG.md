@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4
+
+- Selected text stays readable in the Raw view.
+- Undo and redo in the Raw view keep the text in sync with the file.
+
 ## 1.0.3
 
 - Link a renamed or moved folder to its old backups, then pull everything from This Workspace.

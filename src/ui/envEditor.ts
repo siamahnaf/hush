@@ -46,7 +46,8 @@ export class EnvEditorProvider implements vscode.CustomTextEditorProvider {
     webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(this.ctx.extensionUri, "media")] };
     webview.html = this.html(webview);
 
-    const sent: string[] = [];
+    // Text of the webview edit currently being applied; changes matching it are echoes, anything else (undo, redo, external edits) is pushed back
+    let applying: string | undefined;
     let queue = Promise.resolve();
     const sameDoc = (doc: vscode.TextDocument) => doc.uri.toString() === document.uri.toString();
     const postStatus = () => void webview.postMessage({ type: "status", view: this.view(document) });
@@ -55,13 +56,8 @@ export class EnvEditorProvider implements vscode.CustomTextEditorProvider {
     const subscriptions = [
       vscode.workspace.onDidChangeTextDocument((event) => {
         if (!sameDoc(event.document) || !event.contentChanges.length) return;
-        const echo = sent.indexOf(normalize(document.getText()));
-        if (echo >= 0) {
-          sent.splice(0, echo + 1);
-          postStatus();
-        } else {
-          postText("text");
-        }
+        if (applying !== undefined && normalize(document.getText()) === applying) postStatus();
+        else postText("text");
       }),
       vscode.workspace.onDidSaveTextDocument((doc) => sameDoc(doc) && postStatus()),
       this.engine.onDidChange(postStatus),
@@ -72,9 +68,16 @@ export class EnvEditorProvider implements vscode.CustomTextEditorProvider {
             postText("init");
             break;
           case "edit":
-            sent.push(message.text);
-            if (sent.length > 50) sent.shift();
-            queue = queue.then(() => applyText(document, message.text)).catch(() => undefined);
+            queue = queue
+              .then(async () => {
+                applying = message.text;
+                try {
+                  await applyText(document, message.text);
+                } finally {
+                  applying = undefined;
+                }
+              })
+              .catch(() => undefined);
             await queue;
             break;
           case "copy":

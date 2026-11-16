@@ -368,6 +368,10 @@
       paintRaw();
     });
     area.addEventListener("scroll", syncScroll);
+    // The document owns undo/redo; a native textarea undo would double-apply and desync the layers
+    area.addEventListener("beforeinput", (event) => {
+      if (event.inputType === "historyUndo" || event.inputType === "historyRedo") event.preventDefault();
+    });
     area.addEventListener("keydown", (event) => {
       if (event.key !== "Tab" || event.shiftKey) return;
       event.preventDefault();
